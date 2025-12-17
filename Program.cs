@@ -43,8 +43,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // === DATABASE ===
-builder.Services.AddDbContext<DataContext>(options =>
-    options.UseSqlServer(
+builder.Services.AddDbContext<DataContext>(options =>options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
 
@@ -83,10 +82,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCors();
+
 
 var app = builder.Build();
 
-// === MIDDLEWARE PIPELINE ===
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
