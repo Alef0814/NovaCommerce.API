@@ -13,7 +13,7 @@ public class DataContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
-    public DbSet<Author> Authors;
+    public DbSet<Author> Authors=> Set<Author>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
