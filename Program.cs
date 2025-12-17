@@ -79,17 +79,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig["Key"]!))
         };
 
-        // Eventos úteis para debug (opcional)
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                    context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-
-                return Task.CompletedTask;
-            }
-        };
+    
     });
 
 builder.Services.AddAuthorization();
@@ -104,6 +94,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// CORS deve vir ANTES de Authentication/Authorization
+app.UseCors(policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
 
 // Ordem crítica!
 app.UseAuthentication();
