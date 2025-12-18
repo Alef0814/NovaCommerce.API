@@ -1,31 +1,29 @@
-# Etapa 1: Build
+# Etapa de build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copia o arquivo .csproj (usando o nome exato)
-COPY NovaCommerce.API.csproj ./
+# Copia o arquivo .csproj da raiz
+COPY NovaCommerce.API.csproj .
 
-# Restaura os pacotes
-RUN dotnet restore NovaCommerce.API.csproj
+# Restaura as dependências
+RUN dotnet restore
 
-# Copia todo o resto do código fonte
-COPY . ./
+# Copia todo o código fonte
+COPY . .
 
-# Publica a aplicação em modo Release
-RUN dotnet publish NovaCommerce.API.csproj -c Release -o /app/publish --no-restore
+# Publica a aplicação
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
-# Etapa 2: Runtime
+# Etapa de runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Copia os arquivos publicados da etapa anterior
-COPY --from=build /app/publish ./
+# Copia os arquivos publicados
+COPY --from=build /app/publish .
 
-# Expoe a porta padrão do ASP.NET Core em containers
+# Configurações para container
 EXPOSE 8080
-
-# Define a URL que a app vai escutar (boa prática em containers)
 ENV ASPNETCORE_URLS=http://+:8080
 
-# Executa a aplicação
+# Executa a API
 ENTRYPOINT ["dotnet", "NovaCommerce.API.dll"]
