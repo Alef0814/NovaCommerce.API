@@ -1,16 +1,19 @@
-# Etapa 1: build
+# Etapa de build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /app
+WORKDIR /src
 
-COPY *.sln .
-COPY *.csproj .
+COPY NovaCommerce.API.csproj .
 RUN dotnet restore
 
 COPY . .
-RUN dotnet publish -c Release -o out
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
-# Etapa 2: runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# Etapa de runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-COPY --from=build /app/out .
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8000
+EXPOSE 8000
+
 ENTRYPOINT ["dotnet", "NovaCommerce.API.dll"]
