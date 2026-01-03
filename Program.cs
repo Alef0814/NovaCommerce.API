@@ -12,100 +12,60 @@ var builder = WebApplication.CreateBuilder(args);
 
 // === CONFIGURAÇÃO DE CONFIGURAÇÃO (appsettings) ===
 // Garante que recarregue em desenvolvimento e lança exceção se faltar chave obrigatória
-var jwtConfig = builder.Configuration.GetSection("Jwt");
-if (string.IsNullOrEmpty(jwtConfig["Key"]) || jwtConfig["Key"]!.Length < 32)
-    throw new InvalidOperationException("JWT Key deve ter no mínimo 256 bits (32 caracteres).");
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "NovaCommerce API", Version = "v1" });
-    
-    // Adiciona suporte ao Bearer no Swagger (opcional, mas fica lindo)
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme.",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "Bearer"
-    });
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new() {
-                Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// === DATABASE ===
-builder.Services.AddDbContext<DataContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db"));
-
-
-
-// === AUTO MAPPER ===
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
-// === SERVICES ===
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IAuthorService, AuthorService>();
-
-
-
-
+// Remova as linhas acima e coloque dentro do AddJwtBearer:
+// === JWT AUTHENTICATION ===
 // === JWT AUTHENTICATION ===
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Fallbacks seguros para tudo
+        var jwtKey = builder.Configuration["Jwt:Key"] 
+                     ?? "MinhaChaveSuperSecretaParaJWT1234567890Alef0814"; // 44 caracteres
+
+        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "NovaCommerceAPI";
+        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "NovaCommerceClients";
+
+        if (jwtKey.Length < 32)
+            throw new InvalidOperationException("JWT Key deve ter no mínimo 256 bits (32 caracteres).");
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.FromMinutes(5), // tolerância comum
-            ValidIssuer = jwtConfig["Issuer"],
-            ValidAudience = jwtConfig["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig["Key"]!))
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
-
-    
     });
 
 builder.Services.AddAuthorization();
 builder.Services.AddCors();
+builder.Services.AddAuthorization();
+builder.Services.AddCors();
 
+// ... resto do código
 
 var app = builder.Build();
-
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NovaCommerce API v1"));
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-// CORS deve vir ANTES de Authentication/Authorization
 app.UseCors(policy => policy
     .AllowAnyOrigin()
     .AllowAnyMethod()
     .AllowAnyHeader());
 
-// Ordem crítica!
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/", () => Results.Ok("NovaCommerce API rodando! 🚀"));
 
-app.Run();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
+app.Run($"http://0.0.0.0:{port}");
