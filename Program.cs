@@ -43,9 +43,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // === DATABASE ===
-builder.Services.AddDbContext<DataContext>(options =>options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db"));
 
 
 
