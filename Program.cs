@@ -50,12 +50,8 @@ builder.Services.AddCors();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NovaCommerce API v1"));
 app.UseCors(policy => policy
     .AllowAnyOrigin()
     .AllowAnyMethod()
@@ -65,7 +61,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/", () => Results.Ok("NovaCommerce API rodando! 🚀"));
+app.MapGet("/", () => Results.Ok(new { message = "NovaCommerce API rodando com sucesso! 🚀", swagger = "/swagger" }));
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
 app.Run($"http://0.0.0.0:{port}");
